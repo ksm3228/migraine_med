@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>약 복용 기록</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#ffffff;--bg2:#f5f5f5;--bg3:#eeeeee;
+    --text:#111111;--text2:#555555;--text3:#999999;
+    --border:#e0e0e0;--border2:#cccccc;
+    --blue:#185FA5;--red:#A32D2D;--radius:8px;--radius-lg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+      --text:#f0f0f0;--text2:#aaaaaa;--text3:#666666;
+      --border:#333333;--border2:#444444;
+    }
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .login-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:40px 32px;text-align:center;max-width:360px;width:90%}
+  .login-card h1{font-size:20px;font-weight:500;margin-bottom:8px}
+  .login-card p{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.6}
+  .btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 20px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:14px;font-weight:500;cursor:pointer}
+  .btn-google:hover{background:var(--bg3)}
+  .btn-google svg{width:18px;height:18px;flex-shrink:0}
+  .login-footer{font-size:11px;color:var(--text3);margin-top:20px}
+  #app-screen{display:none;max-width:900px;margin:0 auto;padding:16px}
+  .app-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+  .app-header h1{font-size:16px;font-weight:500}
+  .header-right{display:flex;align-items:center;gap:8px}
+  .user-info{display:flex;align-items:center;gap:8px}
+  .user-avatar{width:28px;height:28px;border-radius:50%;border:1px solid var(--border)}
+  .user-name{font-size:13px;color:var(--text2)}
+  .btn-signout{font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer}
+  .btn-signout:hover{background:var(--bg2)}
+  .btn-manage{font-size:12px;padding:4px 10px;border:1px solid var(--border2);border-radius:var(--radius);background:none;color:var(--blue);cursor:pointer;font-weight:500}
+  .btn-manage:hover{background:var(--bg2)}
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .cal-title{font-size:16px;font-weight:500}
+  .cal-btns{display:flex;gap:6px}
+  .cal-btns button{border:1px solid var(--border2);border-radius:var(--radius);padding:4px 12px;font-size:12px;color:var(--text2);cursor:pointer;background:none}
+  .cal-btns button:hover{background:var(--bg2)}
+  .dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+  .dow{text-align:center;font-size:11px;color:var(--text3);padding:4px 0;font-weight:500}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .dc{border:1px solid var(--border);border-radius:var(--radius);padding:5px 6px;min-height:82px;background:var(--bg);cursor:pointer;transition:border-color .15s}
+  .dc:hover{border-color:var(--blue);background:var(--bg2)}
+  .dc.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+  .dc.today .dn{background:var(--blue);color:#fff;border-radius:50%}
+  .dn{font-size:11px;font-weight:500;color:var(--text2);width:20px;height:20px;display:flex;align-items:center;justify-content:center;margin-bottom:3px}
+  .dc.sat .dn,.dc.sun .dn{color:var(--red)}
+  .pill{font-size:9px;border-radius:4px;padding:2px 5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-weight:500}
+  .holiday-label{font-size:9px;color:var(--red);font-weight:500;margin-bottom:2px}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius)}
+  .leg{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+  .leg-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+  .cal-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .cs{background:var(--bg2);border-radius:var(--radius);padding:10px 12px}
+  .cs-label{font-size:11px;color:var(--text2);margin-bottom:4px}
+  .cs-val{font-size:18px;font-weight:500}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:200}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px;width:340px;max-width:95vw;max-height:90vh;overflow-y:auto}
+  .modal-title{font-size:15px;font-weight:500;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+  .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);line-height:1}
+  .modal-close:hover{color:var(--text)}
+  .divider{height:1px;background:var(--border);margin:14px 0}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .btn-cancel{padding:7px 14px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer}
+  .btn-cancel:hover{background:var(--bg2)}
+  .btn-save{padding:7px 18px;font-size:13px;border:none;border-radius:var(--radius);background:var(--blue);color:#fff;cursor:pointer;font-weight:500}
+  .btn-save:hover{background:#0C447C}
+  .btn-delete{padding:7px 14px;font-size:13px;border:1px solid #e53e3e;border-radius:var(--radius);background:none;color:#e53e3e;cursor:pointer}
+  .btn-delete:hover{background:#fff5f5}
+  .saving-indicator{font-size:11px;color:var(--text3);margin-top:8px;text-align:center;min-height:16px}
+  .med-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .med-btn{padding:10px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:7px;transition:all .15s}
+  .med-btn:hover{background:var(--bg2)}
+  .med-btn.selected{border-width:2px}
+  .med-color{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .memo-section{margin-bottom:14px}
+  .memo-label{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;display:block}
+  textarea{width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);resize:vertical;min-height:60px}
+  textarea:focus{outline:none;border-color:var(--blue)}
+  .manage-modal{width:440px}
+  .med-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .med-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg2);cursor:grab}
+  .med-list-item:active{cursor:grabbing}
+  .med-list-color{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+  .med-list-name{flex:1;font-size:13px;font-weight:500}
+  .med-list-actions{display:flex;gap:4px;flex-shrink:0}
+  .btn-icon{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;color:var(--text2)}
+  .btn-icon:hover{background:var(--bg3)}
+  .btn-icon.danger{border-color:#e53e3e;color:#e53e3e}
+  .btn-icon.danger:hover{background:#fff5f5}
+  .add-med-form{padding:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg2)}
+  .add-med-form-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px}
+  .form-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .form-input{flex:1;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)}
+  .form-input:focus{outline:none;border-color:var(--blue)}
+  .color-picker-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .color-picker-label{font-size:11px;color:var(--text3);flex-shrink:0}
+  .color-swatch{width:20px;height:20px;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:transform .1s;flex-shrink:0}
+  .color-swatch:hover{transform:scale(1.2)}
+  .color-swatch.active{border-color:#333;transform:scale(1.15)}
+  .btn-add-med{padding:7px 14px;font-size:13px;border:none;border-radius:var(--radius);background:var(--blue);color:#fff;cursor:pointer;font-weight:500;white-space:nowrap}
+  .btn-add-med:hover{background:#0C447C}
+  .med-edit-input{flex:1;padding:4px 8px;font-size:13px;border:1px solid var(--blue);border-radius:6px;background:var(--bg);color:var(--text)}
+  .med-edit-input:focus{outline:none}
+  .edit-swatches{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+  @media(max-width:600px){
+    .cal-summary{grid-template-columns:1fr 1fr}
+    #app-screen{padding:10px}
+    .dc{min-height:70px}
+    .manage-modal{width:95vw}
+    .header-right{gap:4px}
+    .user-name{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h1>💊 약 복용 기록</h1>
+    <p>구글 계정으로 로그인하면<br>모든 기기에서 데이터가 동기화됩니다</p>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Google로 로그인
+    </button>
+    <div class="login-footer">로그인 시 Firebase에 데이터가 안전하게 저장됩니다</div>
+  </div>
+</div>
+
+<div id="app-screen">
+  <div class="app-header">
+    <h1>💊 약 복용 기록</h1>
+    <div class="header-right">
+      <button class="btn-manage" onclick="openManageModal()">⚙️ 약 목록 관리</button>
+      <div class="user-info">
+        <img class="user-avatar" id="user-avatar" src="" alt="">
+        <span class="user-name" id="user-name"></span>
+        <button class="btn-signout" onclick="signOut()">로그아웃</button>
+      </div>
+    </div>
+  </div>
+  <div class="cal-nav">
+    <span class="cal-title" id="cal-title"></span>
+    <div class="cal-btns">
+      <button onclick="prevMonth()">◀</button>
+      <button onclick="goToday()">오늘</button>
+      <button onclick="nextMonth()">▶</button>
+    </div>
+  </div>
+  <div class="dow-row">
+    <div class="dow" style="color:var(--red)">일</div>
+    <div class="dow">월</div><div class="dow">화</div><div class="dow">수</div>
+    <div class="dow">목</div><div class="dow">금</div>
+    <div class="dow" style="color:var(--red)">토</div>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="legend" id="legend"></div>
+  <div class="cal-summary" id="cal-summary"></div>
+</div>
+
+<!-- 복용 기록 모달 -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-date-title"></span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="med-grid" id="med-grid"></div>
+    <div class="divider"></div>
+    <div class="memo-section">
+      <label class="memo-label">메모</label>
+      <textarea id="f-memo" placeholder="특이사항, 부작용 등 메모"></textarea>
+    </div>
+    <div class="saving-indicator" id="saving-indicator"></div>
+    <div class="modal-actions" id="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" onclick="saveEntry()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 약 목록 관리 모달 -->
+<div class="modal-bg" id="manage-modal-bg">
+  <div class="modal manage-modal">
+    <div class="modal-title">
+      <span>⚙️ 약 목록 관리</span>
+      <button class="modal-close" onclick="closeManageModal()">×</button>
+    </div>
+    <div class="med-list" id="med-list"></div>
+    <div class="divider"></div>
+    <div class="add-med-form">
+      <div class="add-med-form-title">+ 새 약 추가</div>
+      <div class="form-row">
+        <input class="form-input" id="new-med-name" placeholder="약 이름 (예: 메트포르민)" maxlength="20">
+        <button class="btn-add-med" onclick="addMed()">추가</button>
+      </div>
+      <div class="color-picker-row">
+        <span class="color-picker-label">색상:</span>
+        <div id="color-swatches" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+    <div class="saving-indicator" id="manage-saving-indicator"></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6">
+      ※ 약을 삭제해도 기존 복용 기록은 유지됩니다.<br>
+      ※ 드래그로 순서를 변경할 수 있습니다.
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, collection, setDoc, deleteDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyC9k6iGUcNObjxQGtlVOuP5_YSpErT9DtA",
+  authDomain:        "ward-app-257c4.firebaseapp.com",
+  projectId:         "ward-app-257c4",
+  storageBucket:     "ward-app-257c4.firebasestorage.app",
+  messagingSenderId: "261869081149",
+  appId:             "1:261869081149:web:f031aba266139f76861054"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+let unsubEntries = null;
+let unsubMeds    = null;
+
+window.signInWithGoogle = async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e) { alert("로그인 오류: " + e.message); }
+};
+window.signOut = async () => {
+  if(unsubEntries) unsubEntries();
+  if(unsubMeds) unsubMeds();
+  await fbSignOut(auth);
+};
+
+onAuthStateChanged(auth, user => {
+  if(user){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display   = 'block';
+    document.getElementById('user-avatar').src            = user.photoURL||'';
+    document.getElementById('user-name').textContent      = user.displayName||user.email;
+
+    if(unsubEntries) unsubEntries();
+    unsubEntries = onSnapshot(collection(db,'meds',user.uid,'entries'), snap => {
+      snap.docChanges().forEach(ch => {
+        if(ch.type==='removed') delete window.MDATA[ch.doc.id];
+        else window.MDATA[ch.doc.id] = ch.doc.data();
+      });
+      renderCal();
+    });
+
+    if(unsubMeds) unsubMeds();
+    unsubMeds = onSnapshot(doc(db,'meds',user.uid), snap => {
+      const data = snap.data();
+      if(data && Array.isArray(data.medList)){
+        // Firebase에 저장된 값이 있으면 (빈 배열이더라도) 그대로 사용
+        window.MEDS = data.medList;
+      } else if(!snap.exists()){
+        // 문서 자체가 없을 때만 (최초 가입) 기본값 저장
+        window._saveMedList(window.MEDS);
+      }
+      renderCal();
+      if(document.getElementById('manage-modal-bg').classList.contains('open')) renderMedList();
+    });
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display   = 'none';
+    window.MDATA = {};
+    window.MEDS  = JSON.parse(JSON.stringify(window.DEFAULT_MEDS));
+  }
+});
+
+window._save = async (key,entry) => {
+  const u = auth.currentUser; if(!u) return;
+  await setDoc(doc(db,'meds',u.uid,'entries',key), entry);
+};
+window._delete = async (key) => {
+  const u = auth.currentUser; if(!u) return;
+  await deleteDoc(doc(db,'meds',u.uid,'entries',key));
+};
+window._saveMedList = async (list) => {
+  const u = auth.currentUser; if(!u) return;
+  await setDoc(doc(db,'meds',u.uid), {medList:list}, {merge:true});
+};
+</script>
+
+<script>
+const COLOR_PALETTE = [
+  {bg:'#FBEAF0',color:'#72243E'},{bg:'#E1F5EE',color:'#085041'},
+  {bg:'#EEEDFE',color:'#3C3489'},{bg:'#E6F1FB',color:'#0C447C'},
+  {bg:'#FAEEDA',color:'#633806'},{bg:'#EAF3DE',color:'#27500A'},
+  {bg:'#FDE8E8',color:'#8B1A1A'},{bg:'#E8F4FD',color:'#1A5276'},
+  {bg:'#FEF9E7',color:'#7D6608'},{bg:'#F4ECF7',color:'#6C3483'},
+  {bg:'#E8F8F5',color:'#1A7A5E'},{bg:'#EBF5FB',color:'#1F618D'},
+];
+let selectedColorIdx = 0;
+
+window.DEFAULT_MEDS = [
+  {key:'nsaid', label:'NSAIDs',     bg:'#FBEAF0',color:'#72243E'},
+  {key:'indol', label:'인데놀10mg',  bg:'#E1F5EE',color:'#085041'},
+  {key:'itra',  label:'이트라코나졸',bg:'#EEEDFE',color:'#3C3489'},
+  {key:'nara',  label:'나라믹',      bg:'#E6F1FB',color:'#0C447C'},
+  {key:'wigo',  label:'위고비',      bg:'#FAEEDA',color:'#633806'},
+  {key:'sang',  label:'상헵쌈',      bg:'#EAF3DE',color:'#27500A'},
+];
+window.MEDS  = JSON.parse(JSON.stringify(window.DEFAULT_MEDS));
+window.MDATA = {};
+
+const HOLIDAYS = {
+  "2026-01-01":"새해","2026-01-28":"설연휴","2026-01-29":"설날","2026-01-30":"설연휴",
+  "2026-03-01":"삼일절","2026-05-05":"어린이날","2026-06-06":"현충일",
+  "2026-08-15":"광복절","2026-10-03":"개천절","2026-10-09":"한글날","2026-12-25":"성탄절"
+};
+const DOWK = ['일','월','화','수','목','금','토'];
+const todayObj = new Date();
+let curYear  = todayObj.getFullYear();
+let curMonth = todayObj.getMonth()+1;
+let activeKey    = null;
+let selectedMeds = new Set();
+let editingKey   = null;
+let dragFrom     = null;
+
+function makeKey(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` }
+function daysInMonth(y,m){ return new Date(y,m,0).getDate() }
+function firstDow(y,m){ return new Date(y,m-1,1).getDay() }
+function genUid(){ return 'med_'+Date.now()+'_'+Math.random().toString(36).slice(2,6) }
+
+// ── 캘린더 ───────────────────────────────────────────────
+function renderLegend(){
+  document.getElementById('legend').innerHTML = window.MEDS.map(m=>
+    `<span class="leg"><span class="leg-sq" style="background:${m.bg};border:1px solid ${m.color}"></span>${m.label}</span>`
+  ).join('');
+}
+
+function renderCal(){
+  document.getElementById('cal-title').textContent = `${curYear}년 ${curMonth}월`;
+  const grid = document.getElementById('cal-grid'); grid.innerHTML='';
+  const fd=firstDow(curYear,curMonth), days=daysInMonth(curYear,curMonth);
+  for(let i=0;i<fd;i++){const e=document.createElement('div');e.className='dc empty';grid.appendChild(e);}
+  let counts={};
+  window.MEDS.forEach(m=>counts[m.key]=0);
+  for(let d=1;d<=days;d++){
+    const k=makeKey(curYear,curMonth,d);
+    const info=window.MDATA[k]||{};
+    const dow=(fd+d-1)%7;
+    const isToday=todayObj.getFullYear()===curYear&&todayObj.getMonth()+1===curMonth&&todayObj.getDate()===d;
+    let cls='dc';
+    if(dow===0) cls+=' sun'; if(dow===6) cls+=' sat'; if(isToday) cls+=' today';
+    const cell=document.createElement('div'); cell.className=cls;
+    cell.onclick=()=>openModal(k);
+    let html=`<div class="dn">${d}</div>`;
+    if(HOLIDAYS[k]) html+=`<div class="holiday-label">${HOLIDAYS[k]}</div>`;
+    if(info.meds&&info.meds.length>0){
+      info.meds.forEach(mk=>{
+        const med=window.MEDS.find(m=>m.key===mk);
+        if(med){ counts[mk]=(counts[mk]||0)+1; html+=`<span class="pill" style="background:${med.bg};color:${med.color}">${med.label}</span>`; }
+        else { html+=`<span class="pill" style="background:#eee;color:#999">${mk}</span>`; }
+      });
+    }
+    if(info.memo) html+=`<div style="font-size:9px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${info.memo}</div>`;
+    cell.innerHTML=html; grid.appendChild(cell);
+  }
+  const active=window.MEDS.filter(m=>counts[m.key]>0);
+  document.getElementById('cal-summary').innerHTML=active.slice(0,4).map(m=>
+    `<div class="cs"><div class="cs-label">${m.label}</div><div class="cs-val" style="color:${m.color}">${counts[m.key]}일</div></div>`
+  ).join('');
+  renderLegend();
+}
+
+// ── 복용 기록 모달 ───────────────────────────────────────
+function openModal(k){
+  activeKey=k;
+  const d=new Date(k+'T00:00:00');
+  document.getElementById('modal-date-title').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DOWK[d.getDay()]})`;
+  const info=window.MDATA[k]||{};
+  selectedMeds=new Set(info.meds||[]);
+  document.getElementById('f-memo').value=info.memo||'';
+  document.getElementById('saving-indicator').textContent='';
+  renderMedGrid();
+  document.getElementById('modal-actions').innerHTML=window.MDATA[k]
+    ?`<button class="btn-delete" onclick="deleteEntry()">🗑 삭제</button><button class="btn-cancel" onclick="closeModal()">취소</button><button class="btn-save" onclick="saveEntry()">저장</button>`
+    :`<button class="btn-cancel" onclick="closeModal()">취소</button><button class="btn-save" onclick="saveEntry()">저장</button>`;
+  document.getElementById('modal-bg').classList.add('open');
+}
+function renderMedGrid(){
+  document.getElementById('med-grid').innerHTML=window.MEDS.map(m=>{
+    const on=selectedMeds.has(m.key);
+    return `<button class="med-btn${on?' selected':''}" style="${on?`background:${m.bg};border-color:${m.color};border-width:2px`:''}" onclick="toggleMed('${m.key}')">
+      <span class="med-color" style="background:${m.bg};border:1px solid ${m.color}"></span>
+      <span style="color:${on?m.color:'var(--text2)'};font-weight:${on?'500':'400'}">${m.label}</span>
+    </button>`;
+  }).join('');
+}
+function toggleMed(k){ if(selectedMeds.has(k)) selectedMeds.delete(k); else selectedMeds.add(k); renderMedGrid(); }
+function closeModal(){ document.getElementById('modal-bg').classList.remove('open'); activeKey=null; }
+document.getElementById('modal-bg').addEventListener('click',e=>{ if(e.target===document.getElementById('modal-bg')) closeModal(); });
+
+async function saveEntry(){
+  if(!activeKey) return;
+  const memo=document.getElementById('f-memo').value.trim();
+  const entry={meds:[...selectedMeds],memo};
+  const ind=document.getElementById('saving-indicator'); ind.textContent='저장 중…';
+  try{
+    if(entry.meds.length>0||memo) await window._save(activeKey,entry);
+    else await window._delete(activeKey);
+    ind.textContent='✓ 저장됨'; setTimeout(closeModal,500);
+  }catch(e){ ind.textContent='⚠️ 저장 실패: '+e.message; }
+}
+async function deleteEntry(){
+  if(!activeKey) return;
+  const ind=document.getElementById('saving-indicator'); ind.textContent='삭제 중…';
+  try{ await window._delete(activeKey); setTimeout(closeModal,400); }
+  catch(e){ ind.textContent='⚠️ 오류: '+e.message; }
+}
+
+// ── 약 관리 모달 ─────────────────────────────────────────
+function openManageModal(){
+  editingKey=null;
+  selectedColorIdx=0;
+  document.getElementById('new-med-name').value='';
+  document.getElementById('manage-saving-indicator').textContent='';
+  renderColorSwatches('color-swatches', 0);
+  renderMedList();
+  document.getElementById('manage-modal-bg').classList.add('open');
+}
+function closeManageModal(){
+  document.getElementById('manage-modal-bg').classList.remove('open');
+  editingKey=null;
+}
+document.getElementById('manage-modal-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('manage-modal-bg')) closeManageModal();
+});
+
+function renderColorSwatches(containerId, activeIdx){
+  const el=document.getElementById(containerId); if(!el) return;
+  el.innerHTML=COLOR_PALETTE.map((c,i)=>
+    `<span class="color-swatch${i===activeIdx?' active':''}"
+      style="background:${c.bg};${i===activeIdx?`outline:2px solid ${c.color}`:'outline:1px solid #ccc'}"
+      onclick="selectColor(${i},'${containerId}')"></span>`
+  ).join('');
+}
+
+function selectColor(idx, containerId){
+  selectedColorIdx=idx;
+  renderColorSwatches(containerId, idx);
+}
+
+function renderMedList(){
+  const list=document.getElementById('med-list');
+  if(window.MEDS.length===0){
+    list.innerHTML='<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px">등록된 약이 없습니다</div>';
+    return;
+  }
+  list.innerHTML=window.MEDS.map((m,i)=>{
+    if(editingKey===m.key){
+      return `<div class="med-list-item" style="cursor:default;flex-wrap:wrap;gap:6px">
+        <span class="med-list-color" style="background:${m.bg};outline:2px solid ${m.color}"></span>
+        <input class="med-edit-input" id="edit-input-${m.key}" value="${m.label}" maxlength="20">
+        <div class="edit-swatches" id="edit-swatches-${m.key}"></div>
+        <div class="med-list-actions">
+          <button class="btn-icon btn-save" style="background:var(--blue);color:#fff;border:none" onclick="saveEdit('${m.key}')">저장</button>
+          <button class="btn-icon" onclick="cancelEdit()">취소</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="med-list-item" draggable="true"
+        ondragstart="dragStart(${i})" ondragover="dragOver(event,${i})" ondrop="dragDrop(${i})" ondragend="dragEnd()">
+      <span class="med-list-color" style="background:${m.bg};outline:2px solid ${m.color}"></span>
+      <span class="med-list-name">${m.label}</span>
+      <div class="med-list-actions">
+        <button class="btn-icon" onclick="startEdit('${m.key}')">✏️ 수정</button>
+        <button class="btn-icon danger" onclick="deleteMed('${m.key}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(editingKey){
+    const m=window.MEDS.find(x=>x.key===editingKey);
+    if(m){
+      const ci=COLOR_PALETTE.findIndex(c=>c.bg===m.bg);
+      selectedColorIdx=ci>=0?ci:0;
+      renderColorSwatches(`edit-swatches-${editingKey}`, selectedColorIdx);
+      const inp=document.getElementById(`edit-input-${editingKey}`);
+      if(inp){ inp.focus(); inp.select(); }
+    }
+  }
+}
+
+function startEdit(key){ editingKey=key; renderMedList(); }
+function cancelEdit(){ editingKey=null; renderMedList(); }
+
+async function saveEdit(key){
+  const inp=document.getElementById(`edit-input-${key}`);
+  const newLabel=inp?inp.value.trim():'';
+  if(!newLabel){ alert('약 이름을 입력해주세요'); return; }
+  const c=COLOR_PALETTE[selectedColorIdx];
+  window.MEDS=window.MEDS.map(m=>m.key===key?{...m,label:newLabel,bg:c.bg,color:c.color}:m);
+  editingKey=null;
+  await _saveAndNotify();
+  renderMedList(); renderCal();
+}
+
+async function addMed(){
+  const inp=document.getElementById('new-med-name');
+  const name=inp.value.trim();
+  if(!name){ alert('약 이름을 입력해주세요'); inp.focus(); return; }
+  if(window.MEDS.length>=20){ alert('약은 최대 20개까지 등록할 수 있습니다'); return; }
+  const c=COLOR_PALETTE[selectedColorIdx];
+  window.MEDS=[...window.MEDS,{key:genUid(),label:name,bg:c.bg,color:c.color}];
+  inp.value='';
+  selectedColorIdx=(selectedColorIdx+1)%COLOR_PALETTE.length;
+  renderColorSwatches('color-swatches',selectedColorIdx);
+  await _saveAndNotify();
+  renderMedList(); renderCal();
+}
+
+async function deleteMed(key){
+  const m=window.MEDS.find(x=>x.key===key);
+  if(!m||!confirm(`"${m.label}"을(를) 삭제할까요?\n기존 복용 기록은 유지됩니다.`)) return;
+  window.MEDS=window.MEDS.filter(x=>x.key!==key);
+  await _saveAndNotify();
+  renderMedList(); renderCal();
+}
+
+async function _saveAndNotify(){
+  const ind=document.getElementById('manage-saving-indicator');
+  ind.textContent='저장 중…';
+  try{
+    await window._saveMedList(window.MEDS);
+    ind.textContent='✓ 저장됨';
+    setTimeout(()=>{ ind.textContent=''; },1500);
+  }catch(e){ ind.textContent='⚠️ 저장 실패'; }
+}
+
+// ── 드래그 순서 변경 ─────────────────────────────────────
+function dragStart(i){ dragFrom=i; }
+function dragOver(e,i){ e.preventDefault(); }
+function dragDrop(i){
+  if(dragFrom===null||dragFrom===i) return;
+  const arr=[...window.MEDS];
+  const [item]=arr.splice(dragFrom,1);
+  arr.splice(i,0,item);
+  window.MEDS=arr; dragFrom=null;
+  renderMedList(); renderCal();
+  window._saveMedList(window.MEDS).catch(()=>{});
+}
+function dragEnd(){ dragFrom=null; }
+
+document.getElementById('new-med-name').addEventListener('keydown',e=>{ if(e.key==='Enter') addMed(); });
+
+function prevMonth(){ curMonth--; if(curMonth<1){curMonth=12;curYear--;} renderCal(); }
+function nextMonth(){ curMonth++; if(curMonth>12){curMonth=1;curYear++;} renderCal(); }
+function goToday(){ curYear=todayObj.getFullYear(); curMonth=todayObj.getMonth()+1; renderCal(); }
+
+renderCal();
+</script>
+</body>
+</html>
